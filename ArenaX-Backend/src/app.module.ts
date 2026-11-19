@@ -11,6 +11,7 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { GamesModule } from './games/games.module';
+import { TeamsModule } from './teams/teams.module';
 import { TournamentsModule } from './tournaments/tournaments.module';
 
 @Module({
@@ -27,6 +28,7 @@ import { TournamentsModule } from './tournaments/tournaments.module';
     UsersModule,
     AuthModule,
     GamesModule,
+    TeamsModule,
     TournamentsModule,
   ],
   providers: [
