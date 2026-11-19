@@ -1,11 +1,14 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { paginate, skipTake } from '../common/utils/pagination';
 import { HashingService } from '../common/services/hashing.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
+import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { User } from './entities/user.entity';
 
 @Injectable()
@@ -31,5 +34,28 @@ export class UsersService {
     const saved = await this.usersRepository.save(user);
     const { passwordHash, ...profile } = saved;
     return profile;
+  }
+
+  async findAll(query: ListUsersQueryDto) {
+    const qb = this.usersRepository.createQueryBuilder('user').orderBy('user.id', 'ASC');
+    if (query.role) {
+      qb.andWhere('user.role = :role', { role: query.role });
+    }
+    if (query.search) {
+      qb.andWhere('(user.name ILIKE :search OR user.email ILIKE :search)', {
+        search: `%${query.search}%`,
+      });
+    }
+    const { skip, take } = skipTake(query);
+    const [items, total] = await qb.skip(skip).take(take).getManyAndCount();
+    return paginate(items, total, query);
+  }
+
+  async findOne(id: number) {
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User ${id} not found`);
+    }
+    return user;
   }
 }
