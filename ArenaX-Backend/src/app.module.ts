@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { GamesModule } from './games/games.module';
 import { TeamsModule } from './teams/teams.module';
 import { TournamentsModule } from './tournaments/tournaments.module';
+import { MatchesModule } from './matches/matches.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { TournamentsModule } from './tournaments/tournaments.module';
     GamesModule,
     TeamsModule,
     TournamentsModule,
+    MatchesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
