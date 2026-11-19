@@ -70,4 +70,17 @@ export class UsersService {
     user.role = dto.role;
     return this.usersRepository.save(user);
   }
+
+  async deactivate(id: number, currentUser: AuthUser) {
+    if (id === currentUser.id) {
+      throw new BadRequestException('You cannot deactivate your own account');
+    }
+    const user = await this.findOne(id);
+    if (!user.isActive) {
+      throw new ConflictException('This account is already deactivated');
+    }
+    user.isActive = false;
+    await this.usersRepository.save(user);
+    return { message: `User ${id} has been deactivated` };
+  }
 }

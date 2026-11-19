@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -46,5 +47,10 @@ export class UsersController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.usersService.changeRole(id, dto, user);
+  }
+
+  @Delete(':id')
+  deactivate(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.usersService.deactivate(id, user);
   }
 }
