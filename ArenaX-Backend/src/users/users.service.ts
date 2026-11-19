@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -7,6 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { paginate, skipTake } from '../common/utils/pagination';
 import { HashingService } from '../common/services/hashing.service';
+import { AuthUser } from '../auth/interfaces/auth-user.interface';
+import { ChangeRoleDto } from './dto/change-role.dto';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { User } from './entities/user.entity';
@@ -57,5 +60,14 @@ export class UsersService {
       throw new NotFoundException(`User ${id} not found`);
     }
     return user;
+  }
+
+  async changeRole(id: number, dto: ChangeRoleDto, currentUser: AuthUser) {
+    if (id === currentUser.id) {
+      throw new BadRequestException('You cannot change your own role');
+    }
+    const user = await this.findOne(id);
+    user.role = dto.role;
+    return this.usersRepository.save(user);
   }
 }
