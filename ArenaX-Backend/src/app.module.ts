@@ -10,6 +10,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { GamesModule } from './games/games.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AuthModule } from './auth/auth.module';
     CommonModule,
     UsersModule,
     AuthModule,
+    GamesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
