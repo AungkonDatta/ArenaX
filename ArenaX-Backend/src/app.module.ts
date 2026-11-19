@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { envValidationSchema } from './config/env.validation';
 import { databaseConfig } from './config/database.config';
+import { CommonModule } from './common/common.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { UsersModule } from './users/users.module';
       inject: [ConfigService],
       useFactory: databaseConfig,
     }),
+    CommonModule,
     UsersModule,
   ],
   providers: [
