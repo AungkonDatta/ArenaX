@@ -13,7 +13,9 @@ import { AuthModule } from './auth/auth.module';
 import { GamesModule } from './games/games.module';
 import { TeamsModule } from './teams/teams.module';
 import { TournamentsModule } from './tournaments/tournaments.module';
+import { RegistrationsModule } from './registrations/registrations.module';
 import { MatchesModule } from './matches/matches.module';
+import { StandingsModule } from './standings/standings.module';
 
 @Module({
   imports: [
@@ -31,7 +33,9 @@ import { MatchesModule } from './matches/matches.module';
     GamesModule,
     TeamsModule,
     TournamentsModule,
+    RegistrationsModule,
     MatchesModule,
+    StandingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
