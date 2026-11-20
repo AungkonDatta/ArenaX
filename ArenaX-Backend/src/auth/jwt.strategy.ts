@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Repository } from 'typeorm';
+import { RequestContext } from '../common/context/request-context';
 import { User } from '../users/entities/user.entity';
 import { AuthUser, JwtPayload } from './interfaces/auth-user.interface';
 
@@ -25,6 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Account not found or deactivated');
     }
+    RequestContext.setUserId(user.id);
     return {
       id: user.id,
       name: user.name,

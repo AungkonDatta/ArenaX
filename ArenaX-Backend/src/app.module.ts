@@ -8,6 +8,7 @@ import { CommonModule } from './common/common.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
+import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { GamesModule } from './games/games.module';
@@ -17,6 +18,7 @@ import { RegistrationsModule } from './registrations/registrations.module';
 import { MatchesModule } from './matches/matches.module';
 import { StandingsModule } from './standings/standings.module';
 import { MailModule } from './mail/mail.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -30,6 +32,7 @@ import { MailModule } from './mail/mail.module';
     }),
     CommonModule,
     MailModule,
+    AuditModule,
     UsersModule,
     AuthModule,
     GamesModule,
@@ -47,7 +50,7 @@ import { MailModule } from './mail/mail.module';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(RequestLoggerMiddleware)
+      .apply(RequestContextMiddleware, RequestLoggerMiddleware)
       .forRoutes({ path: '*path', method: RequestMethod.ALL });
   }
 }
