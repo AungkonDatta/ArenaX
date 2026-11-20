@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,7 +8,9 @@ import { DataSource, Repository } from 'typeorm';
 import { AuthUser } from '../auth/interfaces/auth-user.interface';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { paginate, skipTake } from '../common/utils/pagination';
+import { Role } from '../users/enums/role.enum';
 import { CreateTeamDto } from './dto/create-team.dto';
+import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamMember } from './entities/team-member.entity';
 import { Team } from './entities/team.entity';
 
@@ -56,6 +59,26 @@ export class TeamsService {
     return this.getDetail(id);
   }
 
+  async update(id: number, dto: UpdateTeamDto, user: AuthUser) {
+    const team = await this.findTeam(id);
+    this.assertCaptainOrAdmin(team, user);
+    if (dto.name) {
+      team.name = dto.name;
+    }
+    if (dto.tag) {
+      team.tag = dto.tag.toUpperCase();
+    }
+    await this.teamsRepository.save(team);
+    return this.getDetail(id);
+  }
+
+  async remove(id: number, user: AuthUser) {
+    const team = await this.findTeam(id);
+    this.assertCaptainOrAdmin(team, user);
+    await this.teamsRepository.remove(team);
+    return { message: `Team ${id} has been deleted` };
+  }
+
   private async getDetail(id: number) {
     const team = await this.teamsRepository.findOne({
       where: { id },
@@ -66,5 +89,19 @@ export class TeamsService {
       throw new NotFoundException(`Team ${id} not found`);
     }
     return team;
+  }
+
+  private async findTeam(id: number) {
+    const team = await this.teamsRepository.findOne({ where: { id } });
+    if (!team) {
+      throw new NotFoundException(`Team ${id} not found`);
+    }
+    return team;
+  }
+
+  private assertCaptainOrAdmin(team: Team, user: AuthUser) {
+    if (user.role !== Role.ADMIN && team.captainId !== user.id) {
+      throw new ForbiddenException('Only the team captain or an admin can do this');
+    }
   }
 }

@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -14,6 +16,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role } from '../users/enums/role.enum';
 import { CreateTeamDto } from './dto/create-team.dto';
+import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamsService } from './teams.service';
 
 @ApiTags('Teams')
@@ -35,5 +38,19 @@ export class TeamsController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.teamsService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTeamDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.teamsService.update(id, dto, user);
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.teamsService.remove(id, user);
   }
 }
