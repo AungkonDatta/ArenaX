@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Game } from '../games/entities/game.entity';
 import { Match } from '../matches/entities/match.entity';
 import { TournamentRegistration } from '../registrations/entities/tournament-registration.entity';
+import { Standing } from '../standings/entities/standing.entity';
 import { Tournament } from './entities/tournament.entity';
 import { BracketService } from './bracket.service';
 import { RegistrationReviewController } from './registration-review.controller';
@@ -17,6 +18,7 @@ import { TournamentsService } from './tournaments.service';
       Game,
       TournamentRegistration,
       Match,
+      Standing,
     ]),
   ],
   controllers: [

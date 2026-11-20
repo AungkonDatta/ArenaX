@@ -10,7 +10,9 @@ import { Match } from '../matches/entities/match.entity';
 import { MatchStatus } from '../matches/enums/match-status.enum';
 import { TournamentRegistration } from '../registrations/entities/tournament-registration.entity';
 import { RegistrationStatus } from '../registrations/enums/registration-status.enum';
+import { Standing } from '../standings/entities/standing.entity';
 import { Tournament } from './entities/tournament.entity';
+import { TournamentFormat } from './enums/tournament-format.enum';
 import { TournamentStatus } from './enums/tournament-status.enum';
 import { assertCanManage } from './tournament-access';
 
@@ -41,7 +43,15 @@ export class BracketService {
       }
       const teamIds = approved.map((registration) => registration.teamId);
 
-      await this.createSingleElimination(manager, tournament, teamIds);
+      if (tournament.format === TournamentFormat.SINGLE_ELIMINATION) {
+        await this.createSingleElimination(manager, tournament, teamIds);
+      } else {
+        await this.createRoundRobin(manager, tournament, teamIds);
+      }
+
+      for (const teamId of teamIds) {
+        await manager.save(manager.create(Standing, { tournamentId, teamId }));
+      }
 
       tournament.status = TournamentStatus.ONGOING;
       await manager.save(tournament);
@@ -105,6 +115,39 @@ export class BracketService {
         }
         await manager.save(nextMatch);
       }
+    }
+  }
+
+  private async createRoundRobin(
+    manager: EntityManager,
+    tournament: Tournament,
+    teamIds: number[],
+  ) {
+    const slots: (number | null)[] = [...teamIds];
+    if (slots.length % 2 === 1) {
+      slots.push(null);
+    }
+    const totalRounds = slots.length - 1;
+    const half = slots.length / 2;
+
+    for (let round = 1; round <= totalRounds; round++) {
+      let matchNo = 1;
+      for (let i = 0; i < half; i++) {
+        const teamAId = slots[i];
+        const teamBId = slots[slots.length - 1 - i];
+        if (teamAId !== null && teamBId !== null) {
+          await manager.save(
+            manager.create(Match, {
+              tournamentId: tournament.id,
+              round,
+              matchNo: matchNo++,
+              teamAId,
+              teamBId,
+            }),
+          );
+        }
+      }
+      slots.splice(1, 0, slots.pop());
     }
   }
 
