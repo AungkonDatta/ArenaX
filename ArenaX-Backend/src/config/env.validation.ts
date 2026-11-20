@@ -14,4 +14,7 @@ export const envValidationSchema = Joi.object({
   MAIL_USER: Joi.string().allow('').optional(),
   MAIL_PASS: Joi.string().allow('').optional(),
   MAIL_FROM: Joi.string().default('ArenaX <no-reply@arenax.local>'),
+  ADMIN_NAME: Joi.string().default('System Admin'),
+  ADMIN_EMAIL: Joi.string().email({ tlds: { allow: false } }).default('admin@arenax.local'),
+  ADMIN_PASSWORD: Joi.string().min(6).default('Admin@123'),
 });
