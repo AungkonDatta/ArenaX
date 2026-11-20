@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TeamMember } from './entities/team-member.entity';
 import { Team } from './entities/team.entity';
+import { TeamsController } from './teams.controller';
+import { TeamsService } from './teams.service';
 
 @Module({
   imports: [
@@ -10,5 +12,7 @@ import { Team } from './entities/team.entity';
       TeamMember,
     ]),
   ],
+  controllers: [TeamsController],
+  providers: [TeamsService],
 })
 export class TeamsModule {}
