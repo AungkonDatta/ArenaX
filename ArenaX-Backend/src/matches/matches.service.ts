@@ -5,13 +5,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Not, Repository } from 'typeorm';
 import { AuthUser } from '../auth/interfaces/auth-user.interface';
 import { MailService } from '../mail/mail.service';
 import { TournamentRegistration } from '../registrations/entities/tournament-registration.entity';
 import { RegistrationStatus } from '../registrations/enums/registration-status.enum';
+import { Standing } from '../standings/entities/standing.entity';
 import { Team } from '../teams/entities/team.entity';
 import { Tournament } from '../tournaments/entities/tournament.entity';
+import { TournamentFormat } from '../tournaments/enums/tournament-format.enum';
 import { TournamentStatus } from '../tournaments/enums/tournament-status.enum';
 import { assertCanManage } from '../tournaments/tournament-access';
 import { CreateMatchDto } from './dto/create-match.dto';
@@ -137,6 +139,9 @@ export class MatchesService {
       if (!match.teamAId || !match.teamBId) {
         throw new ConflictException('Both teams must be known before submitting a result');
       }
+      if (tournament.format === TournamentFormat.SINGLE_ELIMINATION && dto.scoreA === dto.scoreB) {
+        throw new BadRequestException('Draws are not allowed in single elimination');
+      }
 
       match.scoreA = dto.scoreA;
       match.scoreB = dto.scoreB;
@@ -163,6 +168,17 @@ export class MatchesService {
           }
           await manager.save(nextMatch);
         }
+      }
+
+      await this.applyStanding(manager, match.tournamentId, match.teamAId, dto.scoreA, dto.scoreB);
+      await this.applyStanding(manager, match.tournamentId, match.teamBId, dto.scoreB, dto.scoreA);
+
+      const remaining = await manager.count(Match, {
+        where: { tournamentId: match.tournamentId, status: Not(MatchStatus.COMPLETED) },
+      });
+      if (remaining === 0) {
+        tournament.status = TournamentStatus.COMPLETED;
+        await manager.save(tournament);
       }
     });
     return this.findOne(id);
@@ -194,5 +210,32 @@ export class MatchesService {
       teamB?.name ?? 'TBD',
       match.scheduledAt,
     );
+  }
+
+  private async applyStanding(
+    manager: EntityManager,
+    tournamentId: number,
+    teamId: number,
+    ownScore: number,
+    otherScore: number,
+  ) {
+    const standing = await manager.findOne(Standing, {
+      where: { tournamentId, teamId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!standing) {
+      throw new ConflictException(`Standing row is missing for team ${teamId}`);
+    }
+    standing.played += 1;
+    if (ownScore > otherScore) {
+      standing.wins += 1;
+      standing.points += 3;
+    } else if (ownScore === otherScore) {
+      standing.draws += 1;
+      standing.points += 1;
+    } else {
+      standing.losses += 1;
+    }
+    await manager.save(standing);
   }
 }
