@@ -15,6 +15,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../users/enums/role.enum';
+import { BracketService } from './bracket.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { ListTournamentsQueryDto } from './dto/list-tournaments-query.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
@@ -25,6 +26,7 @@ import { TournamentsService } from './tournaments.service';
 export class TournamentsController {
   constructor(
     private readonly tournamentsService: TournamentsService,
+    private readonly bracketService: BracketService,
   ) {}
 
   @Roles(Role.ORGANIZER)
@@ -59,5 +61,11 @@ export class TournamentsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
     return this.tournamentsService.remove(id, user);
+  }
+
+  @Roles(Role.ORGANIZER)
+  @Post(':id/generate-bracket')
+  generateBracket(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.bracketService.generate(id, user);
   }
 }
