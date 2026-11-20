@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -15,6 +17,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../users/enums/role.enum';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { ListTournamentsQueryDto } from './dto/list-tournaments-query.dto';
+import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { TournamentsService } from './tournaments.service';
 
 @ApiTags('Tournaments')
@@ -40,5 +43,21 @@ export class TournamentsController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.tournamentsService.findOne(id);
+  }
+
+  @Roles(Role.ORGANIZER, Role.ADMIN)
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTournamentDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.tournamentsService.update(id, dto, user);
+  }
+
+  @Roles(Role.ORGANIZER, Role.ADMIN)
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.tournamentsService.remove(id, user);
   }
 }

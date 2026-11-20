@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Game } from '../games/entities/game.entity';
+import { TournamentRegistration } from '../registrations/entities/tournament-registration.entity';
 import { Tournament } from './entities/tournament.entity';
 import { TournamentsController } from './tournaments.controller';
 import { TournamentsService } from './tournaments.service';
@@ -10,6 +11,7 @@ import { TournamentsService } from './tournaments.service';
     TypeOrmModule.forFeature([
       Tournament,
       Game,
+      TournamentRegistration,
     ]),
   ],
   controllers: [
