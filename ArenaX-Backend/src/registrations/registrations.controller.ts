@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   Param,
   ParseIntPipe,
   Post,
@@ -26,5 +28,15 @@ export class RegistrationsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.registrationsService.register(id, dto, user);
+  }
+
+  @Delete('registrations/:id')
+  withdraw(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.registrationsService.withdraw(id, user);
+  }
+
+  @Get('teams/:id/registrations')
+  findByTeam(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.registrationsService.findByTeam(id, user);
   }
 }

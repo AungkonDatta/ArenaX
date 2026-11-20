@@ -5,7 +5,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, Not } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Not, Repository } from 'typeorm';
 import { AuthUser } from '../auth/interfaces/auth-user.interface';
 import { Game } from '../games/entities/game.entity';
 import { TeamMember } from '../teams/entities/team-member.entity';
@@ -20,6 +21,9 @@ import { RegistrationStatus } from './enums/registration-status.enum';
 export class RegistrationsService {
   constructor(
     private readonly dataSource: DataSource,
+    @InjectRepository(TournamentRegistration)
+    private readonly registrationsRepository: Repository<TournamentRegistration>,
+    @InjectRepository(Team) private readonly teamsRepository: Repository<Team>,
   ) {}
 
   register(tournamentId: number, dto: RegisterTeamDto, user: AuthUser) {
@@ -85,5 +89,53 @@ export class RegistrationsService {
       });
       return manager.save(registration);
     });
+  }
+
+  async withdraw(id: number, user: AuthUser) {
+    const registration = await this.registrationsRepository.findOne({
+      where: { id },
+      relations: { tournament: true, team: true },
+    });
+    if (!registration) {
+      throw new NotFoundException(`Registration ${id} not found`);
+    }
+    if (registration.team.captainId !== user.id) {
+      throw new ForbiddenException('Only the team captain can withdraw the team');
+    }
+    if (
+      registration.tournament.status !== TournamentStatus.OPEN ||
+      new Date() > registration.tournament.registrationDeadline
+    ) {
+      throw new ConflictException('A team can only withdraw before the registration deadline');
+    }
+    await this.registrationsRepository.remove(registration);
+    return { message: `Team ${registration.team.name} has withdrawn from ${registration.tournament.title}` };
+  }
+
+  async findByTeam(teamId: number, user: AuthUser) {
+    const team = await this.teamsRepository.findOne({ where: { id: teamId } });
+    if (!team) {
+      throw new NotFoundException(`Team ${teamId} not found`);
+    }
+    if (team.captainId !== user.id) {
+      throw new ForbiddenException('Only the team captain can see these registrations');
+    }
+    const registrations = await this.registrationsRepository.find({
+      where: { teamId },
+      relations: { tournament: true },
+      order: { registeredAt: 'DESC' },
+    });
+    return registrations.map((registration) => ({
+      id: registration.id,
+      status: registration.status,
+      seed: registration.seed,
+      registeredAt: registration.registeredAt,
+      tournament: {
+        id: registration.tournament.id,
+        title: registration.tournament.title,
+        status: registration.tournament.status,
+        registrationDeadline: registration.tournament.registrationDeadline,
+      },
+    }));
   }
 }

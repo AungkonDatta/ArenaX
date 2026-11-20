@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TournamentRegistration } from '../registrations/entities/tournament-registration.entity';
 import { User } from '../users/entities/user.entity';
 import { TeamMember } from './entities/team-member.entity';
 import { Team } from './entities/team.entity';
@@ -12,6 +13,7 @@ import { TeamsService } from './teams.service';
       Team,
       TeamMember,
       User,
+      TournamentRegistration,
     ]),
   ],
   controllers: [TeamsController],

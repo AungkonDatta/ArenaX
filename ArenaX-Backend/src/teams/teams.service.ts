@@ -10,6 +10,9 @@ import { DataSource, Repository } from 'typeorm';
 import { AuthUser } from '../auth/interfaces/auth-user.interface';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { paginate, skipTake } from '../common/utils/pagination';
+import { TournamentRegistration } from '../registrations/entities/tournament-registration.entity';
+import { RegistrationStatus } from '../registrations/enums/registration-status.enum';
+import { TournamentStatus } from '../tournaments/enums/tournament-status.enum';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../users/enums/role.enum';
 import { AddMemberDto } from './dto/add-member.dto';
@@ -24,6 +27,8 @@ export class TeamsService {
     @InjectRepository(Team) private readonly teamsRepository: Repository<Team>,
     @InjectRepository(TeamMember) private readonly membersRepository: Repository<TeamMember>,
     @InjectRepository(User) private readonly usersRepository: Repository<User>,
+    @InjectRepository(TournamentRegistration)
+    private readonly registrationsRepository: Repository<TournamentRegistration>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -80,6 +85,16 @@ export class TeamsService {
   async remove(id: number, user: AuthUser) {
     const team = await this.findTeam(id);
     this.assertCaptainOrAdmin(team, user);
+    const inOngoingTournament = await this.registrationsRepository
+      .createQueryBuilder('registration')
+      .innerJoin('registration.tournament', 'tournament')
+      .where('registration.teamId = :teamId', { teamId: id })
+      .andWhere('registration.status = :approved', { approved: RegistrationStatus.APPROVED })
+      .andWhere('tournament.status = :ongoing', { ongoing: TournamentStatus.ONGOING })
+      .getExists();
+    if (inOngoingTournament) {
+      throw new ConflictException('This team cannot be deleted while it is playing in an ongoing tournament');
+    }
     await this.teamsRepository.remove(team);
     return { message: `Team ${id} has been deleted` };
   }
