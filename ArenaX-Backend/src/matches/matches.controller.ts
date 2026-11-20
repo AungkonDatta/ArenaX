@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -13,6 +15,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../users/enums/role.enum';
 import { CreateMatchDto } from './dto/create-match.dto';
+import { ScheduleMatchDto } from './dto/schedule-match.dto';
 import { MatchesService } from './matches.service';
 
 @ApiTags('Matches')
@@ -40,5 +43,21 @@ export class MatchesController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.matchesService.create(id, dto, user);
+  }
+
+  @Roles(Role.ORGANIZER)
+  @Patch('matches/:id/schedule')
+  schedule(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ScheduleMatchDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.matchesService.schedule(id, dto, user);
+  }
+
+  @Roles(Role.ORGANIZER)
+  @Delete('matches/:id')
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.matchesService.remove(id, user);
   }
 }
