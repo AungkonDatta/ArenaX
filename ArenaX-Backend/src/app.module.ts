@@ -16,6 +16,7 @@ import { TournamentsModule } from './tournaments/tournaments.module';
 import { RegistrationsModule } from './registrations/registrations.module';
 import { MatchesModule } from './matches/matches.module';
 import { StandingsModule } from './standings/standings.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StandingsModule } from './standings/standings.module';
       useFactory: databaseConfig,
     }),
     CommonModule,
+    MailModule,
     UsersModule,
     AuthModule,
     GamesModule,

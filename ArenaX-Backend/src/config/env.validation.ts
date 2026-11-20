@@ -9,4 +9,9 @@ export const envValidationSchema = Joi.object({
   DB_NAME: Joi.string().required(),
   JWT_SECRET: Joi.string().min(10).required(),
   JWT_EXPIRES_IN: Joi.number().default(3600),
+  MAIL_HOST: Joi.string().allow('').optional(),
+  MAIL_PORT: Joi.number().default(2525),
+  MAIL_USER: Joi.string().allow('').optional(),
+  MAIL_PASS: Joi.string().allow('').optional(),
+  MAIL_FROM: Joi.string().default('ArenaX <no-reply@arenax.local>'),
 });
