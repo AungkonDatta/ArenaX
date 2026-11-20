@@ -8,7 +8,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { AuthUser } from '../auth/interfaces/auth-user.interface';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { paginate, skipTake } from '../common/utils/pagination';
 import { TournamentRegistration } from '../registrations/entities/tournament-registration.entity';
 import { RegistrationStatus } from '../registrations/enums/registration-status.enum';
@@ -17,6 +16,7 @@ import { User } from '../users/entities/user.entity';
 import { Role } from '../users/enums/role.enum';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
+import { ListTeamsQueryDto } from './dto/list-teams-query.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamMember } from './entities/team-member.entity';
 import { Team } from './entities/team.entity';
@@ -54,12 +54,17 @@ export class TeamsService {
   }
 
   async findAll(
-    query: PaginationQueryDto,
+    query: ListTeamsQueryDto,
   ) {
     const qb = this.teamsRepository
       .createQueryBuilder('team')
       .loadRelationCountAndMap('team.memberCount', 'team.members')
       .orderBy('team.id', 'ASC');
+    if (query.search) {
+      qb.where('(team.name ILIKE :search OR team.tag ILIKE :search)', {
+        search: `%${query.search}%`,
+      });
+    }
     const { skip, take } = skipTake(query);
     const [items, total] = await qb.skip(skip).take(take).getManyAndCount();
     return paginate(items, total, query);
@@ -151,7 +156,24 @@ export class TeamsService {
     if (!team) {
       throw new NotFoundException(`Team ${id} not found`);
     }
-    return team;
+    return {
+      id: team.id,
+      name: team.name,
+      tag: team.tag,
+      createdAt: team.createdAt,
+      captain: {
+        id: team.captain.id,
+        name: team.captain.name,
+        inGameName: team.captain.inGameName,
+      },
+      members: team.members.map((member) => ({
+        userId: member.userId,
+        name: member.user.name,
+        inGameName: member.user.inGameName,
+        inGameRole: member.inGameRole,
+        joinedAt: member.joinedAt,
+      })),
+    };
   }
 
   private async findTeam(id: number) {

@@ -13,10 +13,10 @@ import { ApiTags } from '@nestjs/swagger';
 import { AuthUser } from '../auth/interfaces/auth-user.interface';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role } from '../users/enums/role.enum';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
+import { ListTeamsQueryDto } from './dto/list-teams-query.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamsService } from './teams.service';
 
@@ -32,7 +32,7 @@ export class TeamsController {
   }
 
   @Get()
-  findAll(@Query() query: PaginationQueryDto) {
+  findAll(@Query() query: ListTeamsQueryDto) {
     return this.teamsService.findAll(query);
   }
 
