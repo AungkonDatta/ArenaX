@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { AuthUser } from '../auth/interfaces/auth-user.interface';
 import { MailService } from '../mail/mail.service';
 import { TournamentRegistration } from '../registrations/entities/tournament-registration.entity';
@@ -16,6 +16,7 @@ import { TournamentStatus } from '../tournaments/enums/tournament-status.enum';
 import { assertCanManage } from '../tournaments/tournament-access';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { ScheduleMatchDto } from './dto/schedule-match.dto';
+import { SubmitResultDto } from './dto/submit-result.dto';
 import { Match } from './entities/match.entity';
 import { MatchStatus } from './enums/match-status.enum';
 
@@ -28,6 +29,7 @@ export class MatchesService {
     private readonly registrationsRepository: Repository<TournamentRegistration>,
     @InjectRepository(Team) private readonly teamsRepository: Repository<Team>,
     private readonly mailService: MailService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findByTournament(tournamentId: number) {
@@ -116,6 +118,54 @@ export class MatchesService {
     }
     await this.matchesRepository.remove(match);
     return { message: `Match ${id} has been deleted` };
+  }
+
+  async submitResult(id: number, dto: SubmitResultDto, user: AuthUser) {
+    await this.dataSource.transaction(async (manager) => {
+      const match = await manager.findOne(Match, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!match) {
+        throw new NotFoundException(`Match ${id} not found`);
+      }
+      const tournament = await manager.findOne(Tournament, { where: { id: match.tournamentId } });
+      assertCanManage(tournament, user, false);
+      if (match.status === MatchStatus.COMPLETED) {
+        throw new ConflictException('A result has already been submitted for this match');
+      }
+      if (!match.teamAId || !match.teamBId) {
+        throw new ConflictException('Both teams must be known before submitting a result');
+      }
+
+      match.scoreA = dto.scoreA;
+      match.scoreB = dto.scoreB;
+      if (dto.scoreA > dto.scoreB) {
+        match.winnerId = match.teamAId;
+      } else if (dto.scoreB > dto.scoreA) {
+        match.winnerId = match.teamBId;
+      } else {
+        match.winnerId = null;
+      }
+      match.status = MatchStatus.COMPLETED;
+      await manager.save(match);
+
+      if (match.nextMatchId && match.winnerId) {
+        const nextMatch = await manager.findOne(Match, {
+          where: { id: match.nextMatchId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (nextMatch) {
+          if (match.nextSlot === 'A') {
+            nextMatch.teamAId = match.winnerId;
+          } else {
+            nextMatch.teamBId = match.winnerId;
+          }
+          await manager.save(nextMatch);
+        }
+      }
+    });
+    return this.findOne(id);
   }
 
   private async getTournament(id: number) {

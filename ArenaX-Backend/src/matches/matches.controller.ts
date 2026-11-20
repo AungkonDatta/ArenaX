@@ -16,6 +16,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../users/enums/role.enum';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { ScheduleMatchDto } from './dto/schedule-match.dto';
+import { SubmitResultDto } from './dto/submit-result.dto';
 import { MatchesService } from './matches.service';
 
 @ApiTags('Matches')
@@ -53,6 +54,16 @@ export class MatchesController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.matchesService.schedule(id, dto, user);
+  }
+
+  @Roles(Role.ORGANIZER)
+  @Patch('matches/:id/result')
+  submitResult(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: SubmitResultDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.matchesService.submitResult(id, dto, user);
   }
 
   @Roles(Role.ORGANIZER)
