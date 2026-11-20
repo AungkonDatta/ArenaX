@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -8,7 +10,9 @@ import { DataSource, Repository } from 'typeorm';
 import { AuthUser } from '../auth/interfaces/auth-user.interface';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { paginate, skipTake } from '../common/utils/pagination';
+import { User } from '../users/entities/user.entity';
 import { Role } from '../users/enums/role.enum';
+import { AddMemberDto } from './dto/add-member.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamMember } from './entities/team-member.entity';
@@ -19,6 +23,7 @@ export class TeamsService {
   constructor(
     @InjectRepository(Team) private readonly teamsRepository: Repository<Team>,
     @InjectRepository(TeamMember) private readonly membersRepository: Repository<TeamMember>,
+    @InjectRepository(User) private readonly usersRepository: Repository<User>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -79,6 +84,49 @@ export class TeamsService {
     return { message: `Team ${id} has been deleted` };
   }
 
+  async addMember(teamId: number, dto: AddMemberDto, user: AuthUser) {
+    const team = await this.findTeam(teamId);
+    this.assertCaptain(team, user);
+
+    const player = await this.usersRepository.findOne({ where: { id: dto.userId } });
+    if (!player || !player.isActive) {
+      throw new NotFoundException(`User ${dto.userId} not found`);
+    }
+    if (player.role !== Role.PLAYER) {
+      throw new BadRequestException('Only players can be added to a team');
+    }
+    const alreadyMember = await this.membersRepository.exists({
+      where: { teamId, userId: dto.userId },
+    });
+    if (alreadyMember) {
+      throw new ConflictException('This player is already in the team');
+    }
+
+    await this.membersRepository.save(
+      this.membersRepository.create({
+        teamId,
+        userId: dto.userId,
+        inGameRole: dto.inGameRole ?? null,
+      }),
+    );
+    return this.getDetail(teamId);
+  }
+
+  async removeMember(teamId: number, userId: number, user: AuthUser) {
+    const team = await this.findTeam(teamId);
+    this.assertCaptain(team, user);
+    if (userId === team.captainId) {
+      throw new BadRequestException('The captain cannot be removed from the team');
+    }
+
+    const member = await this.membersRepository.findOne({ where: { teamId, userId } });
+    if (!member) {
+      throw new NotFoundException('This player is not a member of the team');
+    }
+    await this.membersRepository.remove(member);
+    return this.getDetail(teamId);
+  }
+
   private async getDetail(id: number) {
     const team = await this.teamsRepository.findOne({
       where: { id },
@@ -102,6 +150,12 @@ export class TeamsService {
   private assertCaptainOrAdmin(team: Team, user: AuthUser) {
     if (user.role !== Role.ADMIN && team.captainId !== user.id) {
       throw new ForbiddenException('Only the team captain or an admin can do this');
+    }
+  }
+
+  private assertCaptain(team: Team, user: AuthUser) {
+    if (team.captainId !== user.id) {
+      throw new ForbiddenException('Only the team captain can manage the roster');
     }
   }
 }

@@ -15,6 +15,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role } from '../users/enums/role.enum';
+import { AddMemberDto } from './dto/add-member.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamsService } from './teams.service';
@@ -52,5 +53,23 @@ export class TeamsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
     return this.teamsService.remove(id, user);
+  }
+
+  @Post(':id/members')
+  addMember(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AddMemberDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.teamsService.addMember(id, dto, user);
+  }
+
+  @Delete(':id/members/:userId')
+  removeMember(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.teamsService.removeMember(id, userId, user);
   }
 }
